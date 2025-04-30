@@ -15,7 +15,7 @@ def safe_get_text(sb, selector):
 with SB(uc=True) as sb:
     # Login
     sb.open("https://ssiweb.ssing.eu-central-1.aws.bmw.cloud/inquiry-by-vin/#/init")
-    sb.sleep(6)
+    sb.sleep(3)
     sb.type("#idToken2", "john.ha.hayes")
     sb.click('input#callback_2_1')
     sb.click('input#idToken4_0')
@@ -49,7 +49,7 @@ with SB(uc=True) as sb:
                 sb.click("div.fsDivBox:nth-of-type(1) .iwp-icon-gen_edit")
                 sb.sleep(1)
                 sb.type('input.termsText', term + Keys.ENTER)
-                sb.sleep(3)
+                sb.sleep(7)
                 residual = safe_get_text(sb, "div.fsDivBox:nth-of-type(1) .FSRateInfo div:nth-of-type(3) .pull-right")
                 residuals[term] = residual
                 print(f"Term {term} applied. Residual: {residual}")
@@ -87,7 +87,7 @@ with SB(uc=True) as sb:
         })
 
         sb.refresh()
-        sb.sleep(5)
+        sb.sleep(7)
 
     # Save results to Excel
     df = pd.DataFrame(scraped_data)
