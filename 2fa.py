@@ -4,7 +4,7 @@ from selenium.webdriver.common.keys import Keys
 import pandas as pd
 
 terms = ["24", "36", "39", "42"]
-excel_file = "bmw_financial_data.xlsx"
+excel_file = "bmw_data.xlsx"
 scraped_data = []
 
 # Load previously scraped model code + description pairs
@@ -21,6 +21,33 @@ def safe_get_text(sb, selector):
         return text if text else "0"
     except Exception:
         return "0"
+
+def safe_get_text_from_element(parent_element, css_selector):
+    try:
+        el = parent_element.find_element_by_css_selector(css_selector)
+        text = el.text.strip()
+        return text if text else "0"
+    except Exception:
+        return "0"
+    
+def get_all_incentives(sb, section_index):
+    incentives = {"loyalty": None, "credit": None}
+
+    base_selector = f"div.fsDivBox:nth-of-type({section_index}) .inclusiveProgram"
+    all_programs = sb.find_elements(base_selector)
+    print(len(all_programs))
+    for el in all_programs:
+        value = safe_get_text_from_element(el, ".boldFontbig")
+        label = safe_get_text_from_element(el, ".boldGreyTextBig").lower()
+        print(f"📌 Found label: {label} | value: {value}")
+
+        if "loyalty" in label and not incentives["loyalty"]:
+            incentives["loyalty"] = value
+        elif "credits" in label and not incentives["credit"]:
+            incentives["credit"] = value
+
+        if incentives["loyalty"] and incentives["credit"]:
+            break
 
 with SB(uc=True) as sb:
     # Login
@@ -39,7 +66,7 @@ with SB(uc=True) as sb:
     options = sb.find_elements(".ng-option .ng-option-label")
     total_options = len(options)
     print(f"✅ {total_options} model options found.")
-    batch_size = 30
+    batch_size = 3
     total_batches = (total_options + batch_size - 1) // batch_size
 
     # Ask for batch number after knowing how many are available
@@ -72,6 +99,9 @@ with SB(uc=True) as sb:
             continue
 
         print(f"🔄 Processing: {entry_key}")
+        option_to_click = options[i]
+        sb.execute_script("arguments[0].scrollIntoView();", option_to_click)
+        sb.sleep(1)  # Sleep to allow scrolling to finish
         options[i].click()
         sb.sleep(5)
 
@@ -89,12 +119,15 @@ with SB(uc=True) as sb:
                 residuals[term] = "0"
 
         lease_fs_rate = safe_get_text(sb, "div.fsDivBox:nth-of-type(1) .FSRateInfo div:nth-of-type(2) .pull-right")
-        lease_credit = safe_get_text(sb, "div.fsDivBox:nth-of-type(1) .inclusiveProgram:nth-of-type(1) .boldFontbig")
-        lease_loyalty = safe_get_text(sb, "div.fsDivBox:nth-of-type(1) .inclusiveProgram:nth-of-type(2) .boldFontbig")
-
         retail_fs_rate = safe_get_text(sb, "div.fsDivBox:nth-of-type(2) .FSRateInfo div:nth-of-type(2) .pull-right")
-        retail_credit = safe_get_text(sb, "div.fsDivBox:nth-of-type(2) .inclusiveProgram:nth-of-type(1) .boldFontbig")
-        retail_loyalty = safe_get_text(sb, "div.fsDivBox:nth-of-type(2) .inclusiveProgram:nth-of-type(2) .boldFontbig")
+        lease = get_all_incentives(sb, 1)
+        retail = get_all_incentives(sb, 2)
+
+        lease_loyalty = lease["loyalty"]
+        lease_credit = lease["credit"]
+
+        retail_loyalty = retail["loyalty"]
+        retail_credit = retail["credit"]
 
         row = {
             "Model Code": model_code,
